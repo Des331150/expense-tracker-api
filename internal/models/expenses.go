@@ -12,7 +12,7 @@ type Expense struct {
 	Currency        string    `json:"currency"`
 	Amount          int64     `json:"amount"`
 	TransactionType string    `json:"transaction_type"`
-	Description     string    `json:"description"`
+	Descriptions    string    `json:"descriptions"`
 	DateOfExpense   time.Time `json:"date_of_expense"`
 	CreatedAt       time.Time `json:"created_at"`
 	UpdatedAt       time.Time `json:"updated_at"`
