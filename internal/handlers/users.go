@@ -12,15 +12,16 @@ import (
 )
 
 type Server struct {
-	store *models.UserModel
+	store    *models.UserModel
+	validate *validator.Validate
 }
 
 type RegisterRequest struct {
 	FirstName       string `json:"first_name" validate:"required"`
 	LastName        string `json:"last_name" validate:"required"`
-	Email           string `json:"email" validate:"required, email"`
+	Email           string `json:"email" validate:"required,email"`
 	Password        string `json:"password_1" validate:"required"`
-	ConfirmPassword string `json:"confirm_password" validate:"required, eqcfield=Password"`
+	ConfirmPassword string `json:"confirm_password" validate:"required,eqfield=Password"`
 }
 
 type LoginRequest struct {
@@ -36,8 +37,7 @@ func (s *Server) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	validate := validator.New(validator.WithRequiredStructEnabled())
-	err = validate.Struct(req)
+	err = s.validate.Struct(req)
 	if err != nil {
 		var validateErrs validator.ValidationErrors
 		if errors.As(err, &validateErrs) {
@@ -64,6 +64,8 @@ func (s *Server) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]string{"message": "User created successfully!"})
 
 }
