@@ -18,6 +18,8 @@ type UserModel struct {
 	DB *sql.DB
 }
 
-func (u *UserModel) CreateUser(email string, s string) error {
-	panic("unimplemented")
+func (u *UserModel) CreateUser(email string, PasswordHash string) error {
+	query := `INSERT INTO users(email, password_hash) VALUES($1, $2)`
+	_, err := u.DB.Exec(query, email, PasswordHash)
+	return err
 }
