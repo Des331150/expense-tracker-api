@@ -23,3 +23,15 @@ func (u *UserModel) CreateUser(email string, PasswordHash string) error {
 	_, err := u.DB.Exec(query, email, PasswordHash)
 	return err
 }
+
+func (u *UserModel) LogUser(email string) (string, int, error) {
+	var hash string
+	var id int
+	query := `SELECT password_hash FROM users WHERE email = $1`
+	err := u.DB.QueryRow(query, email).Scan(&hash, &id)
+	if err != nil {
+		return "", 0, err
+	}
+
+	return hash, id, nil
+}
