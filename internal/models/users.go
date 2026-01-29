@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"database/sql"
+	"time"
+)
 
 type User struct {
 	Id           int64     `json:"id"`
@@ -9,4 +12,12 @@ type User struct {
 	Email        string    `json:"email"`
 	PasswordHash []byte    `json:"-"`
 	CreatedAt    time.Time `json:"created_at"`
+}
+
+type UserModel struct {
+	DB *sql.DB
+}
+
+func (u *UserModel) CreateUser(email string, s string) error {
+	panic("unimplemented")
 }
