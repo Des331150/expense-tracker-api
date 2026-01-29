@@ -1,8 +1,10 @@
 package models
 
 import (
-	"database/sql"
+	"context"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type User struct {
@@ -15,7 +17,7 @@ type User struct {
 }
 
 type UserModel struct {
-	DB *sql.DB
+	DB *pgxpool.Pool
 }
 
 func (u *UserModel) CreateUser(email string, PasswordHash string) error {
@@ -28,7 +30,7 @@ func (u *UserModel) LogUser(email string) (string, int, error) {
 	var hash string
 	var id int
 	query := `SELECT password_hash FROM users WHERE email = $1`
-	err := u.DB.QueryRow(query, email).Scan(&hash, &id)
+	err := u.DB.QueryRow(context.Background(), query, email).Scan(&hash, &id)
 	if err != nil {
 		return "", 0, err
 	}
