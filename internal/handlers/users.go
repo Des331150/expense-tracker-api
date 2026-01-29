@@ -5,15 +5,19 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/Des331150/expense-tracker-api/internal/models"
 	"github.com/go-playground/validator/v10"
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type Server struct {
-	store    *models.UserModel
-	validate *validator.Validate
+	store     *models.UserModel
+	validate  *validator.Validate
+	jwtSecret []byte
 }
 
 type RegisterRequest struct {
@@ -27,6 +31,22 @@ type RegisterRequest struct {
 type LoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+}
+
+func (s *Server) createJWT(userID int) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub": strconv.Itoa(userID),
+		"exp": time.Now().Add(time.Hour * 72).Unix(),
+		"iat": time.Now().Unix(),
+	})
+
+	tokenString, err := token.SignedString(s.jwtSecret)
+	if err != nil {
+		return "", err
+	}
+
+	return tokenString, nil
+
 }
 
 func (s *Server) CreateUser(w http.ResponseWriter, r *http.Request) {
@@ -60,12 +80,44 @@ func (s *Server) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	err = s.store.CreateUser(req.Email, string(hashedPassword))
 	if err != nil {
-		http.Error(w, "User not created", http.StatusConflict)
+		http.Error(w, "Invalid email or password", http.StatusUnauthorized)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]string{"message": "User created successfully!"})
+
+}
+
+func (s *Server) LogUser(w http.ResponseWriter, r *http.Request) {
+	var req LoginRequest
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	storedHash, userID, err := s.store.LogUser(req.Email)
+	if err != nil {
+		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+		return
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(req.Password))
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	token, err := s.createJWT(userID)
+	if err != nil {
+		http.Error(w, "Could not generate token", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"token": token})
 
 }
